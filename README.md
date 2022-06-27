@@ -4,6 +4,8 @@
 <a href="https://packagist.org/packages/davidvandertuijn/laravel-after-seeders"><img src="https://poser.pugx.org/davidvandertuijn/laravel-after-seeders/v/stable.svg" alt="Latest Stable Version"></a>
 <a href="https://packagist.org/packages/davidvandertuijn/laravel-after-seeders"><img src="https://poser.pugx.org/davidvandertuijn/laravel-after-seeders-seedersders/license.svg" alt="License"></a>
 
+![Laravel After Seeders](https://cdn.davidvandertuijn.nl/github/laravel-after-seeders.png)
+
 This library adds seeders with ***versioning*** support for [Laravel](https://laravel.com/), suitable for a ***production environment***.
 The seeders are stored in the *database/after_seeders* directory using JSON format.
 Progress is tracked in the after_seeders table. so that the seeder is only run once.

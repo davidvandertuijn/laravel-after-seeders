@@ -1,0 +1,28 @@
+{
+    "name": "davidvandertuijn/laravel-after-seeders",
+    "description": "Laravel After Seeders",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "David van der Tuijn",
+            "email": "davidvandertuijn@mac.com"
+        }
+    ],
+    "require": {
+        "php": ">=7.0.0",
+        "ext-json": "*"
+    },
+    "autoload": {
+        "psr-4" : {
+            "Davidvandertuijn\\LaravelAfterSeeders\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Davidvandertuijn\\LaravelAfterSeeders\\ServiceProvider"
+            ]
+        }
+    }
+}

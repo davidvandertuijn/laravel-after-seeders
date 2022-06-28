@@ -16,8 +16,16 @@ Progress is tracked in the after_seeders table. so that the seeder is only run o
 composer require davidvandertuijn/laravel-after-seeders
 ```
 
+Run migration
+
 ```php
 php artisan migrate
+```
+
+Publish config
+
+```
+php artisan vendor:publish --provider="Davidvandertuijn\LaravelAfterSeeders\ServiceProvider"
 ```
 
 ## Usage

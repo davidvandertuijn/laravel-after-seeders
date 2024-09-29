@@ -10,6 +10,8 @@ This library adds seeders with ***versioning*** support for [Laravel](https://la
 The seeders are stored in the *database/after_seeders* directory using JSON format.
 Progress is tracked in the after_seeders table. so that the seeder is only run once.
 
+[!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/davidvandertuijn)
+
 ## Install
 
 ```

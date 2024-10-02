@@ -2,8 +2,8 @@
 
 namespace Davidvandertuijn\LaravelAfterSeeders\app\Console\Commands\AfterSeeders;
 
-use Illuminate\Support\Arr;
 use Illuminate\Console\Command;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -36,8 +36,6 @@ class Run extends Command
 
     /**
      * Check Pending Seeders.
-     * @param array $seeders
-     * @return bool
      */
     protected function checkPendingSeeders(array $seeders): bool
     {
@@ -51,17 +49,18 @@ class Run extends Command
 
             $table = $this->getTable($seeder);
 
-            if ( ! $this->ensureTableExist($table)) {
-                ++$errors;
+            if (! $this->ensureTableExist($table)) {
+                $errors++;
+
                 continue;
             }
 
-            $file = $this->getPath().'/'.$seeder .'.json';
+            $file = $this->getPath().'/'.$seeder.'.json';
             $records = $this->getRecords($file);
             $columns = $this->getColumns($records);
 
-            if ( ! $this->ensureColumnsExist($table, $columns)) {
-                ++$errors;
+            if (! $this->ensureColumnsExist($table, $columns)) {
+                $errors++;
             }
         }
 
@@ -70,9 +69,6 @@ class Run extends Command
 
     /**
      * Ensure Columns Exist.
-     * @param string $table
-     * @param array $columns
-     * @return bool
      */
     protected function ensureColumnsExist(string $table, array $columns): bool
     {
@@ -81,12 +77,12 @@ class Run extends Command
         $exists = [];
 
         foreach ($columns as $column) {
-            if ( ! Schema::hasColumn($table, $column)) {
+            if (! Schema::hasColumn($table, $column)) {
                 $this->error(sprintf(
                     '[ERROR] Column "%s" does not exists.',
                     $column
                 ));
-                ++$errors;
+                $errors++;
             } else {
                 $exists[] = $column;
             }
@@ -108,16 +104,15 @@ class Run extends Command
 
     /**
      * Ensure Table Exist.
-     * @param string $table
-     * @return bool
      */
     protected function ensureTableExist(string $table): bool
     {
-        if ( ! Schema::hasTable($table)) {
+        if (! Schema::hasTable($table)) {
             $this->error(sprintf(
                 '[ERROR] Table "%s" does not exists.',
                 $table
             ));
+
             return false;
         }
 
@@ -131,8 +126,6 @@ class Run extends Command
 
     /**
      * Get Columns.
-     * @param array $records
-     * @return array $columns
      */
     protected function getColumns(&$records): array
     {
@@ -140,7 +133,7 @@ class Run extends Command
 
         foreach ($records['RECORDS'] as $record) {
             foreach (array_keys($record) as $column) {
-                if ( ! in_array($column, $columns)) {
+                if (! in_array($column, $columns)) {
                     $columns[] = $column;
                 }
             }
@@ -159,7 +152,6 @@ class Run extends Command
 
     /**
      * Get Path.
-     * @return string
      */
     protected function getPath(): string
     {
@@ -168,8 +160,6 @@ class Run extends Command
 
     /**
      * Get Ran.
-     *
-     * @return array
      */
     protected function getRan(): array
     {
@@ -182,16 +172,15 @@ class Run extends Command
 
     /**
      * Get Records.
-     * @param string $file
-     * @return array $records
      */
     protected function getRecords(string $file): array
     {
         $records = file_get_contents($file);
         $records = json_decode($records, true);
 
-        if ( ! Arr::exists($records, 'RECORDS')) {
+        if (! Arr::exists($records, 'RECORDS')) {
             $this->error('[ERROR] Invalid JSON structure.');
+
             return [];
         }
 
@@ -200,8 +189,6 @@ class Run extends Command
 
     /**
      * Get Seeder Files.
-     * @param string $path
-     * @return array
      */
     protected function getSeederFiles(string $path): array
     {
@@ -210,8 +197,6 @@ class Run extends Command
 
     /**
      * Get Seeder Name.
-     * @param string $path
-     * @return string
      */
     protected function getSeederName(string $path): string
     {
@@ -221,8 +206,6 @@ class Run extends Command
 
     /**
      * Get Seeder Names.
-     * @param array $files
-     * @return array $seederNames
      */
     protected function getSeederNames(array $files): array
     {
@@ -237,8 +220,6 @@ class Run extends Command
 
     /**
      * Get Table.
-     * @param string $seeder
-     * @return string
      */
     protected function getTable(string $seeder): string
     {
@@ -250,23 +231,18 @@ class Run extends Command
 
     /**
      * Log.
-     * @param string $file
-     * @param int $batch
      */
     protected function log(string $seeder, int $batch)
     {
         DB::table('after_seeders')->insert([
             'seeder' => $seeder,
             'batch' => $batch,
-            'created_at' => now()
+            'created_at' => now(),
         ]);
     }
 
     /**
      * Pending Seeders.
-     * @param array $seederNames
-     * @param array $ran
-     * @return array
      */
     protected function pendingSeeders(array $seederNames, array $ran): array
     {
@@ -275,16 +251,16 @@ class Run extends Command
 
     /**
      * Run Pending.
-     * @param array $seeders
      */
     protected function runPending(array $seeders): void
     {
         if (count($seeders) == 0) {
             $this->info('Nothing to seed.');
+
             return;
         }
 
-        if ( ! $this->checkPendingSeeders($seeders)) {
+        if (! $this->checkPendingSeeders($seeders)) {
             return;
         }
 
@@ -293,12 +269,11 @@ class Run extends Command
 
     /**
      * Run Pending Seeders.
-     * @param array $seeders
      */
     protected function runPendingSeeders(array $seeders): void
     {
         $batch = $this->getNextBatchNumber();
-        $this->line('Batch: ' . $batch);
+        $this->line('Batch: '.$batch);
 
         foreach ($seeders as $seeder) {
             $this->info(sprintf(
@@ -307,7 +282,7 @@ class Run extends Command
             ));
 
             $table = $this->getTable($seeder);
-            $file = $this->getPath().'/'.$seeder .'.json';
+            $file = $this->getPath().'/'.$seeder.'.json';
             $records = $this->getRecords($file);
 
             $this->seed($table, $records);
@@ -317,8 +292,6 @@ class Run extends Command
 
     /**
      * Seed.
-     * @param string $table
-     * @param array $records
      */
     protected function seed(string $table, array &$records): void
     {
@@ -330,17 +303,17 @@ class Run extends Command
         foreach ($records['RECORDS'] as $aRecord) {
             // Created At
 
-            if ( ! array_key_exists('created_at', $aRecord)
+            if (! array_key_exists('created_at', $aRecord)
                 && Schema::hasColumn($table, 'created_at')) {
                 $aRecord['created_at'] = now();
             }
 
             // Update Or Insert
 
-            if (Arr::exists($aRecord,'id')) {
+            if (Arr::exists($aRecord, 'id')) {
                 $updateOrInsert += DB::table($table)->updateOrInsert(
                     [
-                        'id' => $aRecord['id']
+                        'id' => $aRecord['id'],
                     ],
                     $aRecord
                 );
@@ -349,8 +322,8 @@ class Run extends Command
             }
         }
 
-        $this->line('Update Or Insert: ' . $updateOrInsert);
-        $this->line('Insert: ' . $insert);
+        $this->line('Update Or Insert: '.$updateOrInsert);
+        $this->line('Insert: '.$insert);
 
         Schema::enableForeignKeyConstraints();
     }

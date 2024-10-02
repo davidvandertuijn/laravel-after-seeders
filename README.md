@@ -14,19 +14,19 @@ Progress is tracked in the after_seeders table. so that the seeder is only run o
 
 ## Install
 
-```
+```shell
 composer require davidvandertuijn/laravel-after-seeders
 ```
 
 Run migration
 
-```php
+```shell
 php artisan migrate
 ```
 
 Publish config
 
-```
+```shell
 php artisan vendor:publish --provider="Davidvandertuijn\LaravelAfterSeeders\ServiceProvider"
 ```
 
@@ -99,13 +99,13 @@ Created Seeder: */database/after_seeders/YYYY_MM_DD_XXXXXX_my_table.json*:
 
 The pending after seeders are executed with the command below:
 
-```php
+```shell
 php artisan after-seeders:run
 ```
 
 During execution it is checked whether the table and / or columns actually exist, otherwise the seeder is skipped.
 
-```bash
+```
 Check seeder: YYYY_MM_DD_XXXXXX_my_table
 [OK] Table "my_table" exists.
 [OK] Columns "id, name" exists.

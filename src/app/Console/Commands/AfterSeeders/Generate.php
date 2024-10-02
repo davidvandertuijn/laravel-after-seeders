@@ -27,7 +27,7 @@ class Generate extends Command
     {
         $table = $this->argument('table');
 
-        if ( ! $this->ensureTableExist($table)) {
+        if (! $this->ensureTableExist($table)) {
             return;
         }
 
@@ -35,7 +35,7 @@ class Generate extends Command
         $filename = $this->getFilename($table);
         $columns = $this->getColumns($table);
 
-        if ( ! $this->checkColumns($columns)) {
+        if (! $this->checkColumns($columns)) {
             return;
         }
 
@@ -48,13 +48,12 @@ class Generate extends Command
 
     /**
      * Check Columns.
-     * @param array $columns
-     * @return bool
      */
     protected function checkColumns(array $columns): bool
     {
         if (count($columns) == 0) {
             $this->error('[ERROR] No columns have been added.');
+
             return false;
         }
 
@@ -63,9 +62,6 @@ class Generate extends Command
 
     /**
      * Create.
-     * @param string $path
-     * @param string $filename
-     * @param string $json
      */
     protected function create(string $path, string $filename, string $json): void
     {
@@ -79,12 +75,10 @@ class Generate extends Command
 
     /**
      * Ensure Table Exist.
-     * @param string $table
-     * @return bool
      */
     protected function ensureTableExist(string $table): bool
     {
-        if ( ! Schema::hasTable($table)) {
+        if (! Schema::hasTable($table)) {
             $this->error(sprintf(
                 '[ERROR] Table "%s" does not exists.',
                 $table
@@ -98,14 +92,12 @@ class Generate extends Command
 
     /**
      * Get Columns
-     * @param string $table
-     * @return array $columns
      */
     protected function getColumns(string $table): array
     {
         $columns = [];
 
-        $this->line("Columns");
+        $this->line('Columns');
 
         $columnListing = Schema::getColumnListing($table);
 
@@ -123,7 +115,6 @@ class Generate extends Command
 
     /**
      * Get Date Prefix.
-     * @return string
      */
     protected function getDatePrefix(): string
     {
@@ -132,8 +123,6 @@ class Generate extends Command
 
     /**
      * Get Filename.
-     * @param string $table
-     * @return string
      */
     protected function getFilename(string $table): string
     {
@@ -142,13 +131,11 @@ class Generate extends Command
 
     /**
      * Get Json.
-     * @param \Illuminate\Support\Collection $records
-     * @return string
      */
     protected function getJson(\Illuminate\Support\Collection $records): string
     {
         $records = [
-            'RECORDS' => $records->toArray()
+            'RECORDS' => $records->toArray(),
         ];
 
         return json_encode($records, JSON_PRETTY_PRINT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
@@ -164,7 +151,6 @@ class Generate extends Command
 
     /**
      * Get Path.
-     * @return string
      */
     protected function getPath(): string
     {
@@ -173,12 +159,10 @@ class Generate extends Command
 
     /**
      * Get Range
-     * @param string $table
-     * @return array
      */
     protected function getRange(string $table): array
     {
-        $this->line("Range");
+        $this->line('Range');
 
         $from = $this->ask(sprintf(
             '%s.id from',
@@ -195,10 +179,6 @@ class Generate extends Command
 
     /**
      * Get Records.
-     * @param string $table
-     * @param array $columns
-     * @param array $range
-     * @return \Illuminate\Support\Collection
      */
     protected function getRecords(string $table, array $columns, array $range): \Illuminate\Support\Collection
     {

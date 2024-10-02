@@ -2,6 +2,6 @@
 
 return [
 
-    'path' => env('AFTER_SEEDERS_PATH', database_path('after_seeders'))
+    'path' => env('AFTER_SEEDERS_PATH', database_path('after_seeders')),
 
 ];

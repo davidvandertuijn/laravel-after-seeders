@@ -41,7 +41,7 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         $this->commands([
             GenerateCommand::class,
             MakeCommand::class,
-            RunCommand::class
+            RunCommand::class,
         ]);
     }
 }

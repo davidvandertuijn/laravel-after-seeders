@@ -2,6 +2,8 @@
 
 namespace Davidvandertuijn\LaravelAfterSeeders\app\Console\Commands\AfterSeeders;
 
+use Davidvandertuijn\LaravelAfterSeeders\Exceptions\ColumnsNotAdded as ColumnsNotAddedException;
+use Davidvandertuijn\LaravelAfterSeeders\Exceptions\TableNotFound as TableNotFoundException;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +20,7 @@ class Generate extends Command
     /**
      * @var string
      */
-    protected $description = 'Generating After Seeder';
+    protected $description = 'Generate after seeder';
 
     /**
      * Handle.
@@ -27,7 +29,19 @@ class Generate extends Command
     {
         $table = $this->argument('table');
 
-        if (! $this->ensureTableExist($table)) {
+        $this->components->info(sprintf(
+            'Generate after seeder for table "%s".',
+            $table
+        ));
+
+        try {
+            $this->ensureTableExist($table);
+        } catch (TableNotFoundException) {
+            $this->components->error(sprintf(
+                'Table "%s" does not exists.',
+                $table
+            ));
+
             return;
         }
 
@@ -35,7 +49,11 @@ class Generate extends Command
         $filename = $this->getFilename($table);
         $columns = $this->getColumns($table);
 
-        if (! $this->checkColumns($columns)) {
+        try {
+            $this->checkColumns($columns);
+        } catch (ColumnsNotAddedException) {
+            $this->components->error('Columns not added.');
+
             return;
         }
 
@@ -49,15 +67,11 @@ class Generate extends Command
     /**
      * Check Columns.
      */
-    protected function checkColumns(array $columns): bool
+    protected function checkColumns(array $columns): void
     {
         if (count($columns) == 0) {
-            $this->error('[ERROR] No columns have been added.');
-
-            return false;
+            throw new ColumnsNotAddedException;
         }
-
-        return true;
     }
 
     /**
@@ -67,27 +81,23 @@ class Generate extends Command
     {
         File::put($path.'/'.$filename, $json);
 
-        $this->line(sprintf('Created Seeder: %s/%s',
-            $path,
-            $filename
-        ));
+        $this->components->twoColumnDetail(
+            sprintf('<fg=white;options=bold>%s/%s</>',
+                $path,
+                $filename
+            ),
+            '<fg=green>SUCCESS</>'
+        );
     }
 
     /**
      * Ensure Table Exist.
      */
-    protected function ensureTableExist(string $table): bool
+    protected function ensureTableExist(string $table): void
     {
         if (! Schema::hasTable($table)) {
-            $this->error(sprintf(
-                '[ERROR] Table "%s" does not exists.',
-                $table
-            ));
-
-            return false;
+            throw new TableNotFoundException;
         }
-
-        return true;
     }
 
     /**
@@ -97,13 +107,19 @@ class Generate extends Command
     {
         $columns = [];
 
-        $this->line('Columns');
+        $this->line(sprintf(
+            '<fg=white;options=bold>%s</>',
+            sprintf(
+                'Columns for table "%s".',
+                $table
+            )
+        ));
 
         $columnListing = Schema::getColumnListing($table);
 
         foreach ($columnListing as $column) {
             if ($this->confirm(sprintf(
-                'Add column "%s" ?',
+                'Would you like to add the column "%s" ?',
                 $column
             ))) {
                 $columns[] = $column;
@@ -162,17 +178,16 @@ class Generate extends Command
      */
     protected function getRange(string $table): array
     {
-        $this->line('Range');
+        $this->line(sprintf(
+            '<fg=white;options=bold>%s</>',
+            sprintf(
+                'Select range for table "%s".',
+                $table
+            )
+        ));
 
-        $from = $this->ask(sprintf(
-            '%s.id from',
-            $table
-        ), 0);
-
-        $to = $this->ask(sprintf(
-            '%s.id to',
-            $table
-        ), $this->getMaxId($table));
+        $from = $this->ask('Enter the starting ID', 0);
+        $to = $this->ask('Enter the ending ID', $this->getMaxId($table));
 
         return range($from, $to);
     }

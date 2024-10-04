@@ -2,6 +2,9 @@
 
 namespace Davidvandertuijn\LaravelAfterSeeders\app\Console\Commands\AfterSeeders;
 
+use Davidvandertuijn\LaravelAfterSeeders\Exceptions\ColumnNotFound as ColumnNotFoundException;
+use Davidvandertuijn\LaravelAfterSeeders\Exceptions\InvalidJson as InvalidJsonException;
+use Davidvandertuijn\LaravelAfterSeeders\Exceptions\TableNotFound as TableNotFoundException;
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Config;
@@ -18,7 +21,7 @@ class Run extends Command
     /**
      * @var string
      */
-    protected $description = 'Running After Seeders';
+    protected $description = 'Running after seeders';
 
     /**
      * Handle.
@@ -41,87 +44,113 @@ class Run extends Command
     {
         $errors = 0;
 
-        foreach ($seeders as $seeder) {
-            $this->info(sprintf(
-                'Check after seeder: %s',
-                $seeder
-            ));
+        $this->components->info(sprintf(
+            'Check after seeders',
+        ));
 
+        foreach ($seeders as $seeder) {
             $table = $this->getTable($seeder);
 
-            if (! $this->ensureTableExist($table)) {
+            // Ensure table exist
+
+            try {
+                $this->ensureTableExist($table);
+            } catch (TableNotFoundException) {
                 $errors++;
+
+                $this->components->error(sprintf(
+                    'Table "%s" does not exists.',
+                    $table
+                ));
 
                 continue;
             }
 
             $file = $this->getPath().'/'.$seeder.'.json';
-            $records = $this->getRecords($file);
+
+            // Get records
+
+            try {
+                $records = $this->getRecords($file);
+            } catch (InvalidJsonException) {
+                $errors++;
+
+                $this->components->twoColumnDetail(
+                    $seeder,
+                    sprintf(
+                        '<fg=red;options=bold>%s</>',
+                        'ERROR'
+                    )
+                );
+
+                $this->components->error('Invalid JSON');
+
+                continue;
+            }
+
             $columns = $this->getColumns($records);
 
-            if (! $this->ensureColumnsExist($table, $columns)) {
+            // Ensure columns exist
+
+            try {
+                $this->ensureColumnsExist($table, $columns);
+            } catch (ColumnNotFoundException $e) {
                 $errors++;
+
+                $this->components->twoColumnDetail(
+                    $seeder,
+                    sprintf(
+                        '<fg=red;options=bold>%s</>',
+                        'ERROR'
+                    )
+                );
+
+                $this->components->error(sprintf(
+                    'Column "%s" not exists.',
+                    $e->getMessage()
+                ));
+
+                continue;
             }
+
+            $this->components->twoColumnDetail(
+                $seeder,
+                sprintf(
+                    '<fg=green;options=bold>%s</>',
+                    'SUCCESS'
+                )
+            );
         }
 
-        return $errors == 0 ? true : false;
+        return $errors == 0;
     }
 
     /**
      * Ensure Columns Exist.
      */
-    protected function ensureColumnsExist(string $table, array $columns): bool
+    protected function ensureColumnsExist(string $table, array $columns): void
     {
-        $errors = 0;
-
         $exists = [];
 
         foreach ($columns as $column) {
             if (! Schema::hasColumn($table, $column)) {
-                $this->error(sprintf(
-                    '[ERROR] Column "%s" does not exists.',
-                    $column
-                ));
-                $errors++;
+                throw new ColumnNotFoundException($column);
             } else {
                 $exists[] = $column;
             }
         }
 
-        if ($errors > 0) {
-            return false;
-        }
-
         sort($exists);
-
-        $this->line(sprintf(
-            '[OK] Columns "%s" exists.',
-            implode(', ', $exists)
-        ));
-
-        return true;
     }
 
     /**
      * Ensure Table Exist.
      */
-    protected function ensureTableExist(string $table): bool
+    protected function ensureTableExist(string $table): void
     {
         if (! Schema::hasTable($table)) {
-            $this->error(sprintf(
-                '[ERROR] Table "%s" does not exists.',
-                $table
-            ));
-
-            return false;
+            throw new TableNotFoundException;
         }
-
-        $this->line(sprintf(
-            '[OK] Table "%s" exists.',
-            $table
-        ));
-
-        return true;
     }
 
     /**
@@ -176,12 +205,21 @@ class Run extends Command
     protected function getRecords(string $file): array
     {
         $records = file_get_contents($file);
+
+        if (function_exists('json_validate')) {
+            $isValid = json_validate($records);
+        } else {
+            $isValid = json_decode($records) !== null && json_last_error() === JSON_ERROR_NONE;
+        }
+
+        if (! $isValid) {
+            throw new InvalidJsonException;
+        }
+
         $records = json_decode($records, true);
 
         if (! Arr::exists($records, 'RECORDS')) {
-            $this->error('[ERROR] Invalid JSON structure.');
-
-            return [];
+            throw new InvalidJsonException;
         }
 
         return $records;
@@ -255,7 +293,7 @@ class Run extends Command
     protected function runPending(array $seeders): void
     {
         if (count($seeders) == 0) {
-            $this->info('Nothing to seed.');
+            $this->components->warn('There are no after seeders available.');
 
             return;
         }
@@ -273,17 +311,39 @@ class Run extends Command
     protected function runPendingSeeders(array $seeders): void
     {
         $batch = $this->getNextBatchNumber();
-        $this->line('Batch: '.$batch);
+
+        $this->components->info(sprintf(
+            'Run batch "%s"',
+            $batch
+        ));
 
         foreach ($seeders as $seeder) {
-            $this->info(sprintf(
-                'Running seeder: %s ',
-                $seeder
-            ));
-
             $table = $this->getTable($seeder);
             $file = $this->getPath().'/'.$seeder.'.json';
-            $records = $this->getRecords($file);
+
+            try {
+                $records = $this->getRecords($file);
+            } catch (InvalidJsonException) {
+                $this->components->twoColumnDetail(
+                    $seeder,
+                    sprintf(
+                        '<fg=red;options=bold>%s</>',
+                        'ERROR'
+                    )
+                );
+
+                $this->components->error('Invalid JSON');
+
+                continue;
+            }
+
+            $this->components->twoColumnDetail(
+                $seeder,
+                sprintf(
+                    '<fg=green;options=bold>%s</>',
+                    'SUCCESS'
+                )
+            );
 
             $this->seed($table, $records);
             $this->log($seeder, $batch);
@@ -297,33 +357,27 @@ class Run extends Command
     {
         Schema::disableForeignKeyConstraints();
 
-        $updateOrInsert = 0;
-        $insert = 0;
-
-        foreach ($records['RECORDS'] as $aRecord) {
+        foreach ($records['RECORDS'] as $record) {
             // Created At
 
-            if (! array_key_exists('created_at', $aRecord)
+            if (! array_key_exists('created_at', $record)
                 && Schema::hasColumn($table, 'created_at')) {
-                $aRecord['created_at'] = now();
+                $record['created_at'] = now();
             }
 
             // Update Or Insert
 
-            if (Arr::exists($aRecord, 'id')) {
-                $updateOrInsert += DB::table($table)->updateOrInsert(
+            if (Arr::exists($record, 'id')) {
+                DB::table($table)->updateOrInsert(
                     [
-                        'id' => $aRecord['id'],
+                        'id' => $record['id'],
                     ],
-                    $aRecord
+                    $record
                 );
             } else {
-                $insert += DB::table($table)->insert($aRecord);
+                DB::table($table)->insert($record);
             }
         }
-
-        $this->line('Update Or Insert: '.$updateOrInsert);
-        $this->line('Insert: '.$insert);
 
         Schema::enableForeignKeyConstraints();
     }

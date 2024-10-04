@@ -6,25 +6,25 @@
 
 ![Laravel After Seeders](https://cdn.davidvandertuijn.nl/github/laravel-after-seeders.png)
 
-This library adds seeders with ***versioning*** support for [Laravel](https://laravel.com/), suitable for a ***production environment***.
-The seeders are stored in the *database/after_seeders* directory using JSON format.
-Progress is tracked in the after_seeders table. so that the seeder is only run once.
+This library adds seeder functionality with ***versioning*** support for [Laravel](https://laravel.com/), making it ideal for a ***production environment***. Seeders are stored in the *database/after_seeders* directory in JSON format. The execution progress of each seeder is tracked in the after_seeders table, ensuring that each seeder is only run once.
 
 [!["Buy Me A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://www.buymeacoffee.com/davidvandertuijn)
 
 ## Install
 
+Install the package via Composer:
+
 ```shell
 composer require davidvandertuijn/laravel-after-seeders
 ```
 
-Run migration
+Run the migrations:
 
 ```shell
 php artisan migrate
 ```
 
-Publish config
+Publish the configuration file:
 
 ```shell
 php artisan vendor:publish --provider="Davidvandertuijn\LaravelAfterSeeders\ServiceProvider"
@@ -32,15 +32,66 @@ php artisan vendor:publish --provider="Davidvandertuijn\LaravelAfterSeeders\Serv
 
 ## Usage
 
-### Create a new seeder and fill it manually.
+### Create a New Seeder Automatically
 
-With the command below you create an empty after seeder, good if you are already familiar with the JSON structure, and you want to add the data manually.
+Use the command below to create a complete seeder based on existing records in a database table.
 
-```php
+```shell
+php artisan after-seeders:generate my_table
+```
+
+The command will prompt you to include or exclude specific columns from the table. If you skip a column, it won’t be included in the seeder file. You can also define a range of record IDs to include.
+
+Example prompt:
+
+```
+Columns for table "my_table".
+Would you like to add the column "id" ? (yes/no) [no]: y
+Would you like to add the column "name" ? (yes/no) [no]: y
+Would you like to add the column "dateofbirth" ? (yes/no) [no]:
+Select range for table "my_table".
+Enter the starting ID [0]: 12
+Enter the ending ID [13]: 13
+```
+
+After completion, you’ll get the following message:
+
+```
+database/after_seeders/YYYY_MM_DD_XXXXXX_my_table.json ... SUCCESS
+```
+
+And the seeder will look like this:
+
+```json
+{
+    "RECORDS": [
+        {
+            "id": 12,
+            "name": "John Doe"
+        },
+        {
+            "id": 13,
+            "name": "Jane Doe"
+        }
+    ]
+}
+```
+
+### Create a New Seeder Manually
+
+Use the following command to generate an empty “after seeder” file. This option is ideal if you’re already familiar with the JSON structure and prefer to manually input the data.
+
+```shell
 php artisan after-seeders:make my_table
 ```
 
-Created Seeder: */database/after_seeders/YYYY_MM_DD_XXXXXX_my_table.json*:
+You’ll see the following output upon success:
+
+```
+database/after_seeders/YYYY_MM_DD_XXXXXX_my_table.json ... SUCCESS
+```
+
+A basic structure for the JSON file will look like this:
 
 ```json
 {
@@ -52,68 +103,31 @@ Created Seeder: */database/after_seeders/YYYY_MM_DD_XXXXXX_my_table.json*:
 }
 ```
 
-In [Navicat for MySQL](https://www.navicat.com/en/products/navicat-for-mysql), the same structure is used when exporting to JSON file (.json).
-
-### Create a new seeder and fill it automaticly.
-
-With the command below you create a fully completed seeder based on existing records in a table.
-
-```php
-php artisan after-seeders:generate my_table
-```
-
-Which columns are requested depends on the specified table. Columns that are not answered are not included in the seeder. At range you specify which record IDs should be included in de seeder.
-
-```bash
-Columns
-Add column "id" ? (yes/no) [no]: y
-Add column "name" ? (yes/no) [no]: y
-Add column "dateofbirth" ? (yes/no) [no]:
-Range
-my_table.id from [0]: 12
-my_table.id to [14]: 14
-```
-
-Created Seeder: */database/after_seeders/YYYY_MM_DD_XXXXXX_my_table.json*:
-
-```json
-{
-    "RECORDS": [
-        {
-            "id": 12,
-            "name": "Bill Gates"
-        },
-        {
-            "id": 13,
-            "name": "Steve Jobs"
-        },
-        {
-            "id": 14,
-            "name": "John Doe"
-        }
-    ]
-}
-```
+If you use [Navicat for MySQL](https://www.navicat.com/en/products/navicat-for-mysql), it follows the same format when exporting data to a .json file.
 
 ### Running Seeders
 
-The pending after seeders are executed with the command below:
+To execute pending “after seeders,” run the following command:
 
 ```shell
 php artisan after-seeders:run
 ```
 
-During execution it is checked whether the table and / or columns actually exist, otherwise the seeder is skipped.
+The command checks whether the specified table and columns exist. If not, the seeder will be skipped.
+
+After completion, you’ll get the following message:
 
 ```
-Check seeder: YYYY_MM_DD_XXXXXX_my_table
-[OK] Table "my_table" exists.
-[OK] Columns "id, name" exists.
+Run batch "X".
+database/after_seeders/YYYY_MM_DD_XXXXXX_my_table.json ... SUCCESS
 ```
-***Created At***
 
-If the table has a ***created_at*** column, but this is missing from the seeder, the current time is filled in.
+---
+
+***Handling created_at***
+
+If the table has a ***created_at*** column and it’s missing from the seeder, the current timestamp will be automatically inserted.
 
 ***Update Or Insert***
 
-If the ***id*** column exists in the seeder, the [updateOrInsert](https://laravel.com/docs/8.x/queries#update-or-insert) method is used, otherwise the [insert](https://laravel.com/docs/8.x/queries#inserts) method.
+If the seeder contains an ***id*** column, the [updateOrInsert](https://laravel.com/docs/10.x/queries#update-or-insert) method will be used. Otherwise, the [insert](https://laravel.com/docs/10.x/queries#insert-statements) method will be applied.

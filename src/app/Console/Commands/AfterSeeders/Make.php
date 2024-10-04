@@ -2,6 +2,8 @@
 
 namespace Davidvandertuijn\LaravelAfterSeeders\app\Console\Commands\AfterSeeders;
 
+use Davidvandertuijn\LaravelAfterSeeders\Exceptions\TableNotFound as TableNotFoundException;
+use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
@@ -17,7 +19,7 @@ class Make extends Command
     /**
      * @var string
      */
-    protected $description = 'Make After Seeder';
+    protected $description = 'Make after seeder';
 
     /**
      * Handle.
@@ -26,7 +28,19 @@ class Make extends Command
     {
         $table = $this->argument('table');
 
-        if (! $this->ensureTableExist($table)) {
+        $this->components->info(sprintf(
+            'Make after seeder for table "%s".',
+            $table
+        ));
+
+        try {
+            $this->ensureTableExist($table);
+        } catch (TableNotFoundException) {
+            $this->components->error(sprintf(
+                'Table "%s" does not exists.',
+                $table
+            ));
+
             return;
         }
 
@@ -42,29 +56,31 @@ class Make extends Command
      */
     protected function create(string $path, string $filename, string $json): void
     {
-        File::put($path.'/'.$filename, $json);
+        try {
+            File::put($path.'/'.$filename, $json);
+        } catch (Exception $e) {
+            $this->components->error($e->getMessage());
 
-        $this->line(sprintf('Created After Seeder: %s/%s',
-            $path,
-            $filename
-        ));
+            return;
+        }
+
+        $this->components->twoColumnDetail(
+            sprintf('<fg=white;options=bold>%s/%s</>',
+                $path,
+                $filename
+            ),
+            '<fg=green>SUCCESS</>'
+        );
     }
 
     /**
      * Ensure Table Exist.
      */
-    protected function ensureTableExist(string $table): bool
+    protected function ensureTableExist(string $table): void
     {
         if (! Schema::hasTable($table)) {
-            $this->error(sprintf(
-                '[ERROR] Table "%s" does not exists.',
-                $table
-            ));
-
-            return false;
+            throw new TableNotFoundException;
         }
-
-        return true;
     }
 
     /**

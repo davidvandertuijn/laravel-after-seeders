@@ -2,7 +2,7 @@
 
 <a href="https://packagist.org/packages/davidvandertuijn/laravel-after-seeders"><img src="https://poser.pugx.org/davidvandertuijn/laravel-after-seeders/d/total.svg" alt="Total Downloads"></a>
 <a href="https://packagist.org/packages/davidvandertuijn/laravel-after-seeders"><img src="https://poser.pugx.org/davidvandertuijn/laravel-after-seeders/v/stable.svg" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/davidvandertuijn/laravel-after-seeders"><img src="https://poser.pugx.org/davidvandertuijn/laravel-after-seeders-seedersders/license.svg" alt="License"></a>
+<a href="https://packagist.org/packages/davidvandertuijn/laravel-after-seeders"><img src="https://poser.pugx.org/davidvandertuijn/laravel-after-seeders/license.svg" alt="License"></a>
 
 ![Laravel After Seeders](https://cdn.davidvandertuijn.nl/github/laravel-after-seeders.png)
 

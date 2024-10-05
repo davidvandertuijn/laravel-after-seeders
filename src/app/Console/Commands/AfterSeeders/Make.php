@@ -15,7 +15,7 @@ class Make extends Command
     /**
      * @var string
      */
-    protected $signature = 'after-seeders:make {table}';
+    protected $signature = 'after-seeders:make {table} {--tag=}';
 
     /**
      * @var string
@@ -150,19 +150,22 @@ class Make extends Command
      */
     protected function getJson(\Illuminate\Support\Collection $records): string
     {
-        $records = [];
+        // Initialize an array to hold the records
+        $data = [];
 
+        // Get the 'tag' option
         $tag = $this->option('tag');
 
-        if (! empty($tag)) {
-            $records['TAG'] = $tag;
+        // Add the tag to the data array if it's not empty
+        if (!empty($tag)) {
+            $data['TAG'] = $tag;
         }
 
-        $records = array_merge($records, [
-            'RECORDS' => $records->toArray(),
-        ]);
+        // Convert the Collection to an array and merge it with the data array
+        $data['RECORDS'] = $records->toArray();
 
-        return json_encode($records, JSON_PRETTY_PRINT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+        // Encode the data as JSON
+        return json_encode($data, JSON_PRETTY_PRINT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
     }
 
     /**

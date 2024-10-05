@@ -2,9 +2,10 @@
 
 namespace Davidvandertuijn\LaravelAfterSeeders;
 
-use Davidvandertuijn\LaravelAfterSeeders\app\Console\Commands\AfterSeeders\Generate as GenerateCommand;
+use Davidvandertuijn\LaravelAfterSeeders\app\Console\Commands\AfterSeeders\Deploy as DeployCommand;
 use Davidvandertuijn\LaravelAfterSeeders\app\Console\Commands\AfterSeeders\Make as MakeCommand;
-use Davidvandertuijn\LaravelAfterSeeders\app\Console\Commands\AfterSeeders\Run as RunCommand;
+use Davidvandertuijn\LaravelAfterSeeders\app\Console\Commands\AfterSeeders\Placeholder as PlaceholderCommand;
+use Davidvandertuijn\LaravelAfterSeeders\app\Console\Commands\AfterSeeders\Seed as SeedCommand;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\File;
 
@@ -39,9 +40,10 @@ class ServiceProvider extends \Illuminate\Support\ServiceProvider
         // Commands
 
         $this->commands([
-            GenerateCommand::class,
+            DeployCommand::class,
             MakeCommand::class,
-            RunCommand::class,
+            PlaceholderCommand::class,
+            SeedCommand::class,
         ]);
     }
 }

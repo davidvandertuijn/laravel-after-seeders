@@ -4,4 +4,4 @@ namespace Davidvandertuijn\LaravelAfterSeeders\Exceptions;
 
 use Exception;
 
-class ColumnNotFound extends Exception {}
+class TableNotFoundException extends Exception {}

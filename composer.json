@@ -24,5 +24,8 @@
                 "Davidvandertuijn\\LaravelAfterSeeders\\ServiceProvider"
             ]
         }
+    },
+    "support": {
+        "url": "https://www.buymeacoffee.com/davidvandertuijn"
     }
 }

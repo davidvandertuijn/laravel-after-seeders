@@ -2,10 +2,11 @@
 
 namespace Davidvandertuijn\LaravelAfterSeeders\app\Console\Commands\AfterSeeders;
 
-use Davidvandertuijn\LaravelAfterSeeders\Exceptions\TableNotFound as TableNotFoundException;
-use Exception;
+use Davidvandertuijn\LaravelAfterSeeders\Exceptions\ColumnsNotAddedException;
+use Davidvandertuijn\LaravelAfterSeeders\Exceptions\TableNotFoundException;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Schema;
 
@@ -19,7 +20,7 @@ class Make extends Command
     /**
      * @var string
      */
-    protected $description = 'Make after seeder';
+    protected $description = 'Make an after seeder';
 
     /**
      * Handle.
@@ -29,7 +30,7 @@ class Make extends Command
         $table = $this->argument('table');
 
         $this->components->info(sprintf(
-            'Make after seeder for table "%s".',
+            'Make an after seeder for table "%s".',
             $table
         ));
 
@@ -46,9 +47,31 @@ class Make extends Command
 
         $path = $this->getPath();
         $filename = $this->getFilename($table);
-        $json = $this->getJson();
+        $columns = $this->getColumns($table);
+
+        try {
+            $this->checkColumns($columns);
+        } catch (ColumnsNotAddedException) {
+            $this->components->error('Columns not added.');
+
+            return;
+        }
+
+        $range = $this->getRange($table);
+        $records = $this->getRecords($table, $columns, $range);
+        $json = $this->getJson($records);
 
         $this->create($path, $filename, $json);
+    }
+
+    /**
+     * Check Columns.
+     */
+    protected function checkColumns(array $columns): void
+    {
+        if (count($columns) == 0) {
+            throw new ColumnsNotAddedException;
+        }
     }
 
     /**
@@ -56,20 +79,14 @@ class Make extends Command
      */
     protected function create(string $path, string $filename, string $json): void
     {
-        try {
-            File::put($path.'/'.$filename, $json);
-        } catch (Exception $e) {
-            $this->components->error($e->getMessage());
-
-            return;
-        }
+        File::put($path.'/'.$filename, $json);
 
         $this->components->twoColumnDetail(
             sprintf('<fg=white;options=bold>%s/%s</>',
                 $path,
                 $filename
             ),
-            '<fg=green>SUCCESS</>'
+            '<fg=green>DONE</>'
         );
     }
 
@@ -81,6 +98,35 @@ class Make extends Command
         if (! Schema::hasTable($table)) {
             throw new TableNotFoundException;
         }
+    }
+
+    /**
+     * Get Columns
+     */
+    protected function getColumns(string $table): array
+    {
+        $columns = [];
+
+        $this->line(sprintf(
+            '<fg=white;options=bold>%s</>',
+            sprintf(
+                'Columns for table "%s".',
+                $table
+            )
+        ));
+
+        $columnListing = Schema::getColumnListing($table);
+
+        foreach ($columnListing as $column) {
+            if ($this->confirm(sprintf(
+                'Would you like to add the column "%s" ?',
+                $column
+            ))) {
+                $columns[] = $column;
+            }
+        }
+
+        return $columns;
     }
 
     /**
@@ -102,17 +148,29 @@ class Make extends Command
     /**
      * Get Json.
      */
-    protected function getJson(): string
+    protected function getJson(\Illuminate\Support\Collection $records): string
     {
-        $records = [
-            'RECORDS' => [
-                [
-                    'name' => 'Example',
-                ],
-            ],
-        ];
+        $records = [];
+
+        $tag = $this->option('tag');
+
+        if (! empty($tag)) {
+            $records['TAG'] = $tag;
+        }
+
+        $records = array_merge($records, [
+            'RECORDS' => $records->toArray(),
+        ]);
 
         return json_encode($records, JSON_PRETTY_PRINT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
+    }
+
+    /**
+     * Get Max Id.
+     */
+    protected function getMaxId(string $table)
+    {
+        return DB::table($table)->max('id');
     }
 
     /**
@@ -121,5 +179,35 @@ class Make extends Command
     protected function getPath(): string
     {
         return Config::get('after_seeders.path');
+    }
+
+    /**
+     * Get Range
+     */
+    protected function getRange(string $table): array
+    {
+        $this->line(sprintf(
+            '<fg=white;options=bold>%s</>',
+            sprintf(
+                'Select range for table "%s".',
+                $table
+            )
+        ));
+
+        $from = $this->ask('Enter the starting ID', 0);
+        $to = $this->ask('Enter the ending ID', $this->getMaxId($table));
+
+        return range($from, $to);
+    }
+
+    /**
+     * Get Records.
+     */
+    protected function getRecords(string $table, array $columns, array $range): \Illuminate\Support\Collection
+    {
+        return DB::table($table)
+            ->select($columns)
+            ->whereIn('id', $range)
+            ->get();
     }
 }

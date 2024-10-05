@@ -4,4 +4,4 @@ namespace Davidvandertuijn\LaravelAfterSeeders\Exceptions;
 
 use Exception;
 
-class InvalidJson extends Exception {}
+class ColumnsNotAddedException extends Exception {}

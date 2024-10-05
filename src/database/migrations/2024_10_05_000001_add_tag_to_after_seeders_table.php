@@ -11,11 +11,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('after_seeders', function (Blueprint $table) {
-            $table->bigIncrements('id');
-            $table->string('seeder', 191)->nullable();
-            $table->integer('batch')->unsigned()->nullable()->default(0);
-            $table->timestamps();
+        Schema::table('after_seeders', function (Blueprint $table) {
+            $table->string('tag', 191)->after('seeder')->nullable();
         });
     }
 
@@ -24,6 +21,8 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('after_seeders');
+        Schema::table('after_seeders', function (Blueprint $table) {
+            //
+        });
     }
 };

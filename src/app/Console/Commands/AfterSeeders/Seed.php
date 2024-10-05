@@ -2,26 +2,28 @@
 
 namespace Davidvandertuijn\LaravelAfterSeeders\app\Console\Commands\AfterSeeders;
 
-use Davidvandertuijn\LaravelAfterSeeders\Exceptions\ColumnNotFound as ColumnNotFoundException;
-use Davidvandertuijn\LaravelAfterSeeders\Exceptions\InvalidJson as InvalidJsonException;
-use Davidvandertuijn\LaravelAfterSeeders\Exceptions\TableNotFound as TableNotFoundException;
+use Davidvandertuijn\LaravelAfterSeeders\Exceptions\ColumnNotFoundException;
+use Davidvandertuijn\LaravelAfterSeeders\Exceptions\InvalidJsonException;
+use Davidvandertuijn\LaravelAfterSeeders\Exceptions\TableNotFoundException;
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
-class Run extends Command
+class Seed extends Command
 {
-    /**
-     * @var string
-     */
-    protected $signature = 'after-seeders:run';
+    public ConsoleService $consoleService;
 
     /**
      * @var string
      */
-    protected $description = 'Running after seeders';
+    protected $signature = 'after-seeders:seed {--tag=}';
+
+    /**
+     * @var string
+     */
+    protected $description = 'Seed after seeders';
 
     /**
      * Handle.
@@ -33,8 +35,7 @@ class Run extends Command
         $seederNames = $this->getSeederNames($files);
         $ran = $this->getRan();
         $pendingSeeders = $this->pendingSeeders($seederNames, $ran);
-
-        $this->runPending($pendingSeeders);
+        $this->seedPending($pendingSeeders);
     }
 
     /**
@@ -50,28 +51,12 @@ class Run extends Command
 
         foreach ($seeders as $seeder) {
             $table = $this->getTable($seeder);
-
-            // Ensure table exist
-
-            try {
-                $this->ensureTableExist($table);
-            } catch (TableNotFoundException) {
-                $errors++;
-
-                $this->components->error(sprintf(
-                    'Table "%s" does not exists.',
-                    $table
-                ));
-
-                continue;
-            }
-
             $file = $this->getPath().'/'.$seeder.'.json';
 
-            // Get records
+            // Contents
 
             try {
-                $records = $this->getRecords($file);
+                $contents = $this->getContents($file);
             } catch (InvalidJsonException) {
                 $errors++;
 
@@ -88,7 +73,38 @@ class Run extends Command
                 continue;
             }
 
+            $records = Arr::get($contents, 'RECORDS', []);
             $columns = $this->getColumns($records);
+
+            // Tag
+
+            $tag = Arr::get($contents, 'TAG');
+            if ($tag !== $this->option('tag')) {
+                $this->components->twoColumnDetail(
+                    $seeder,
+                    $tag.' '.sprintf(
+                        '<fg=yellow;options=bold>%s</>',
+                        'SKIPPED'
+                    )
+                );
+
+                continue;
+            }
+
+            // Ensure table exist
+
+            try {
+                $this->ensureTableExist($table);
+            } catch (TableNotFoundException) {
+                $errors++;
+
+                $this->components->error(sprintf(
+                    'Table "%s" does not exists.',
+                    $table
+                ));
+
+                continue;
+            }
 
             // Ensure columns exist
 
@@ -117,7 +133,7 @@ class Run extends Command
                 $seeder,
                 sprintf(
                     '<fg=green;options=bold>%s</>',
-                    'SUCCESS'
+                    'DONE'
                 )
             );
         }
@@ -156,11 +172,11 @@ class Run extends Command
     /**
      * Get Columns.
      */
-    protected function getColumns(&$records): array
+    protected function getColumns(array $records): array
     {
         $columns = [];
 
-        foreach ($records['RECORDS'] as $record) {
+        foreach ($records as $record) {
             foreach (array_keys($record) as $column) {
                 if (! in_array($column, $columns)) {
                     $columns[] = $column;
@@ -200,29 +216,29 @@ class Run extends Command
     }
 
     /**
-     * Get Records.
+     * Get Contents.
      */
-    protected function getRecords(string $file): array
+    protected function getContents(string $file): array
     {
-        $records = file_get_contents($file);
+        $contents = file_get_contents($file);
 
         if (function_exists('json_validate')) {
-            $isValid = json_validate($records);
+            $isValid = json_validate($contents);
         } else {
-            $isValid = json_decode($records) !== null && json_last_error() === JSON_ERROR_NONE;
+            $isValid = json_decode($contents) !== null && json_last_error() === JSON_ERROR_NONE;
         }
 
         if (! $isValid) {
             throw new InvalidJsonException;
         }
 
-        $records = json_decode($records, true);
+        $contents = json_decode($contents, true);
 
-        if (! Arr::exists($records, 'RECORDS')) {
+        if (! Arr::exists($contents, 'RECORDS')) {
             throw new InvalidJsonException;
         }
 
-        return $records;
+        return $contents;
     }
 
     /**
@@ -261,7 +277,7 @@ class Run extends Command
      */
     protected function getTable(string $seeder): string
     {
-        // Remove Prefix 'YYYY_MM_DD_XXXXXX_'
+        // Remove prefix 'YYYY_MM_DD_XXXXXX_'.
         $prefix = substr($seeder, 0, 18);
 
         return str_replace($prefix, '', $seeder);
@@ -274,6 +290,7 @@ class Run extends Command
     {
         DB::table('after_seeders')->insert([
             'seeder' => $seeder,
+            'tag' => $this->option('tag'),
             'batch' => $batch,
             'created_at' => now(),
         ]);
@@ -288,9 +305,9 @@ class Run extends Command
     }
 
     /**
-     * Run Pending.
+     * Seed Pending.
      */
-    protected function runPending(array $seeders): void
+    protected function seedPending(array $seeders): void
     {
         if (count($seeders) == 0) {
             $this->components->warn('There are no after seeders available.');
@@ -302,27 +319,31 @@ class Run extends Command
             return;
         }
 
-        $this->runPendingSeeders($seeders);
+        $this->seedPendingSeeders($seeders);
     }
 
     /**
-     * Run Pending Seeders.
+     * Seed Pending Seeders.
      */
-    protected function runPendingSeeders(array $seeders): void
+    protected function seedPendingSeeders(array $seeders): void
     {
         $batch = $this->getNextBatchNumber();
 
         $this->components->info(sprintf(
-            'Run batch "%s"',
+            'Seed batch "%s"',
             $batch
         ));
+
+        $skipped = 0;
 
         foreach ($seeders as $seeder) {
             $table = $this->getTable($seeder);
             $file = $this->getPath().'/'.$seeder.'.json';
 
+            // Contents
+
             try {
-                $records = $this->getRecords($file);
+                $contents = $this->getContents($file);
             } catch (InvalidJsonException) {
                 $this->components->twoColumnDetail(
                     $seeder,
@@ -337,35 +358,55 @@ class Run extends Command
                 continue;
             }
 
+            // Tag
+
+            $tag = Arr::get($contents, 'TAG');
+            if ($tag !== $this->option('tag')) {
+                $skipped++;
+
+                continue;
+            }
+
+            $records = Arr::get($contents, 'RECORDS', []);
+
+            $start = microtime(true);
+            $this->seed($table, $records);
+            $stop = microtime(true);
+            $time = ($stop - $start) * 1000;
+
+            $this->log($seeder, $batch);
+
             $this->components->twoColumnDetail(
                 $seeder,
                 sprintf(
-                    '<fg=green;options=bold>%s</>',
-                    'SUCCESS'
+                    '%s <fg=green;options=bold>%s</>',
+                    number_format($time, 2).'ms',
+                    'DONE'
                 )
             );
+        }
 
-            $this->seed($table, $records);
-            $this->log($seeder, $batch);
+        if ($skipped == count($seeders)) {
+            $this->components->warn('There are no after seeders available.');
         }
     }
 
     /**
      * Seed.
      */
-    protected function seed(string $table, array &$records): void
+    protected function seed(string $table, array $records): void
     {
         Schema::disableForeignKeyConstraints();
 
-        foreach ($records['RECORDS'] as $record) {
-            // Created At
+        foreach ($records as $record) {
+            // Created at
 
             if (! array_key_exists('created_at', $record)
                 && Schema::hasColumn($table, 'created_at')) {
                 $record['created_at'] = now();
             }
 
-            // Update Or Insert
+            // Update or insert
 
             if (Arr::exists($record, 'id')) {
                 DB::table($table)->updateOrInsert(
